@@ -1,0 +1,31 @@
+<input id="gist" placeholder="Gist ID">
+<input id="token" placeholder="ghp_...">
+<input id="days" placeholder="چند روزه؟ مثلا 30">
+<button onclick="makeKey()">ساخت کلید جدید</button>
+<pre id="out"></pre>
+
+<script>
+async function getKeys(gist, token){
+  let r = await fetch(`https://api.github.com/gists/${gist}`,{
+    headers:{Authorization:`token ${token}`}
+  });
+  let j = await r.json();
+  return JSON.parse(j.files["keys.json"].content);
+}
+async function makeKey(){
+  let gist = document.getElementById('gist').value;
+  let token = document.getElementById('token').value;
+  let days = parseInt(document.getElementById('days').value || 30);
+  let keys = await getKeys(gist, token);
+  let newKey = 'HOOSHA-' + Math.random().toString(36).slice(2,6).toUpperCase() + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+  let exp = new Date();
+  exp.setDate(exp.getDate() + days);
+  keys[newKey] = {active:true, expire:exp.toISOString().split('T')[0], hwid:null, note:""};
+  await fetch(`https://api.github.com/gists/${gist}`,{
+    method:'PATCH',
+    headers:{Authorization:`token ${token}`, 'Content-Type':'application/json'},
+    body:JSON.stringify({files:{"keys.json":{content:JSON.stringify(keys,null,2)}}})
+  });
+  document.getElementById('out').innerText = 'کلید ساخته شد:\n' + newKey;
+}
+</script>
